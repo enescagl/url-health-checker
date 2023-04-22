@@ -1,0 +1,2 @@
+## Docker Starting
+You can start this app with docker using `docker compose`. Simply run `docker compose up -d` then the `rabbitmq` and `app` services will start working. You can use `Producer` project to feed `rabbitmq` queue. It will reflect in the console of `Consumer` project. You can add new URLs to `Producer` `Resources/urls.txt` as a new line.
