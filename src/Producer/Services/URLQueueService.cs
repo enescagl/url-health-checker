@@ -1,6 +1,7 @@
 using System.Text;
 
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 using RabbitMQ.Client;
 
@@ -11,43 +12,34 @@ namespace URLHealthChecker.Producer.Services
     public class URLQueueService : IQueueService
     {
         private readonly IConfiguration _configuration;
+        private readonly IFileReader _fileReader;
+        private readonly ILogger<URLQueueService> _logger;
         private readonly IConnection _rabbitConnection;
         private readonly IModel _model;
 
-        public URLQueueService(IConfiguration configuration, IRabbitConnection rabbitConnection)
+        public URLQueueService(
+            IConfiguration configuration,
+            IRabbitConnection rabbitConnection,
+            IFileReader fileReader,
+            ILogger<URLQueueService> logger)
         {
             _configuration = configuration;
+            _fileReader = fileReader;
+            _logger = logger;
             _rabbitConnection = rabbitConnection.CreateConnection();
             _model = _rabbitConnection.CreateModel();
-            _ = _model.QueueDeclare(queue: configuration["Queue:Name"],
+            _ = _model.QueueDeclare(
+                queue: _configuration["Queue:Name"],
                 durable: Convert.ToBoolean(_configuration["Queue:Durable"]),
                 exclusive: Convert.ToBoolean(_configuration["Queue:Exclusive"]),
                 autoDelete: Convert.ToBoolean(_configuration["Queue:AutoDelete"]),
                 arguments: null);
         }
 
-        private static List<string> GetURLsFromFile()
-        {
-            List<string> urls = new();
-            foreach (string urlFile in Directory.GetFiles("Resources", "*.txt"))
-            {
-                string? line;
-                using StreamReader sr = new(urlFile);
-                while ((line = sr.ReadLine()) != null)
-                {
-                    if (line != "")
-                    {
-                        urls.Add(line);
-                    }
-                }
-            }
-
-            return urls;
-        }
-
         public void SendURL()
         {
-            List<string> urls = GetURLsFromFile();
+            List<string> urls = _fileReader.ReadLinesInFolder("Resources");
+            _logger.LogInformation("Sending {Count} URLs to queue", urls.Count);
             ConnectionFactory factory = new()
             {
                 HostName = _configuration.GetValue<string>("RabbitMQ:HostName"),
@@ -58,15 +50,15 @@ namespace URLHealthChecker.Producer.Services
             using IConnection connection = factory.CreateConnection();
             using IModel channel = connection.CreateModel();
 
-            QueueDeclareOk queue = channel.QueueDeclare(queue: "urls",
+            _ = channel.QueueDeclare(queue: "urls",
                                  durable: true,
                                  exclusive: false,
                                  autoDelete: false,
                                  arguments: null);
+
             foreach (string url in urls)
             {
-                string message = url;
-                byte[] body = Encoding.UTF8.GetBytes(message);
+                byte[] body = Encoding.UTF8.GetBytes(url);
 
                 channel.BasicPublish(exchange: "",
                                      routingKey: "urls",

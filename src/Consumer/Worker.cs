@@ -6,26 +6,22 @@ namespace URLHealthChecker.Consumer
 {
     public class Worker : BackgroundService
     {
-        private readonly IHealthChecker _healthChecker;
         private readonly IQueueService _queueService;
+        private readonly IHealthChecker _healthChecker;
 
-        public Worker(IHealthChecker healthChecker, IQueueService queueService)
+        public Worker(IQueueService queueService, IHealthChecker healthChecker)
         {
-            _healthChecker = healthChecker;
             _queueService = queueService;
+            _healthChecker = healthChecker;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            while (!stoppingToken.IsCancellationRequested)
+            PeriodicTimer periodicTimer = new(TimeSpan.FromSeconds(30));
+            while (await periodicTimer.WaitForNextTickAsync(stoppingToken))
             {
-                Console.WriteLine($"Worker running at: {DateTimeOffset.Now}");
                 await _queueService.ReceiveURLAsMessage();
-                if (_queueService.URLs.Count > 0)
-                {
-                    string url = _queueService.URLs.Dequeue();
-                    await _healthChecker.LogURLStatus(url);
-                }
+                await _healthChecker.LogURLStatus(_queueService.URLs.Dequeue());
             }
         }
     }

@@ -16,16 +16,14 @@ IConfigurationRoot configuration = new ConfigurationBuilder()
     .AddEnvironmentVariables()
     .Build();
 
-// new JsonFormatter()
-
 using IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((services) =>
     {
         _ = services.Configure<HostOptions>(hostOptions => hostOptions.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore);
         _ = services.AddHttpClient();
+        _ = services.AddTransient<IHealthChecker, HealthChecker>();
         _ = services.AddSingleton<IRabbitConnection, RabbitConnection>();
         _ = services.AddTransient<IQueueService, URLQueueService>();
-        _ = services.AddTransient<IHealthChecker, HealthChecker>();
         _ = services.AddHostedService<Worker>();
     })
     .UseSerilog((context, _, loggerConfiguration) => loggerConfiguration

@@ -6,19 +6,19 @@ namespace URLHealthChecker.Producer
 {
     public class Worker : BackgroundService
     {
-        private readonly IWatcher _watcher;
+        private readonly IQueueService _queueService;
 
-        public Worker(IWatcher watcher)
+        public Worker(IQueueService queueService)
         {
-            _watcher = watcher;
+            _queueService = queueService;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            while (!stoppingToken.IsCancellationRequested)
+            PeriodicTimer periodicTimer = new(TimeSpan.FromSeconds(5));
+            while (await periodicTimer.WaitForNextTickAsync(stoppingToken))
             {
-                Console.WriteLine("Watching files");
-                await _watcher.Watch();
+                _queueService.SendURL();
             }
         }
     }
