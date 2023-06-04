@@ -15,15 +15,13 @@ services:
   consumer:
     container_name: url_health_checker
     build:
-      context: .
-      dockerfile: src/Consumer/Dockerfile
+      context: src/Consumer
     depends_on:
       - rabbitmq
 
   producer:
-    container_name: url_health_checker
+    container_name: url_feeder
     build:
-      context: .
-      dockerfile: src/Consumer/Dockerfile
+      context: src/Producer
     depends_on:
       - rabbitmq
