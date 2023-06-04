@@ -17,11 +17,17 @@ namespace URLHealthChecker.Consumer
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            PeriodicTimer periodicTimer = new(TimeSpan.FromSeconds(30));
-            while (await periodicTimer.WaitForNextTickAsync(stoppingToken))
+            while (!stoppingToken.IsCancellationRequested)
             {
                 await _queueService.ReceiveURLAsMessage();
-                await _healthChecker.LogURLStatus(_queueService.URLs.Dequeue());
+
+                await Task.Run(async () =>
+                {
+                    if (_queueService.URLs.TryDequeue(out string? urlOutQueue))
+                    {
+                        await _healthChecker.LogURLStatus(urlOutQueue);
+                    }
+                }, stoppingToken);
             }
         }
     }

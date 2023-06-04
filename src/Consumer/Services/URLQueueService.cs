@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text;
 
 using Microsoft.Extensions.Configuration;
@@ -11,7 +12,7 @@ namespace URLHealthChecker.Consumer.Services
 {
     public class URLQueueService : IQueueService, IDisposable
     {
-        public Queue<string> URLs { get; set; } = new Queue<string>();
+        public ConcurrentQueue<string> URLs { get; set; } = new();
 
         private readonly IConfiguration _configuration;
         private readonly IConnection _rabbitConnection;
