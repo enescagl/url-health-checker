@@ -20,14 +20,11 @@ namespace URLHealthChecker.Consumer
             while (!stoppingToken.IsCancellationRequested)
             {
                 await _queueService.ReceiveURLAsMessage();
-
-                await Task.Run(async () =>
+                if (_queueService.URLs.TryDequeue(out string? urlOutQueue))
                 {
-                    if (_queueService.URLs.TryDequeue(out string? urlOutQueue))
-                    {
-                        await _healthChecker.LogURLStatus(urlOutQueue);
-                    }
-                }, stoppingToken);
+                    await _healthChecker.LogURLStatus(urlOutQueue);
+                }
+                await Task.Delay(1000, stoppingToken);
             }
         }
     }

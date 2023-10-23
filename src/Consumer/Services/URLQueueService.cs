@@ -48,7 +48,7 @@ namespace URLHealthChecker.Consumer.Services
             string text = Encoding.UTF8.GetString(body);
             if (text != string.Empty)
             {
-                _ = URLs.Append(text);
+                URLs.Enqueue(text);
             }
             await Task.CompletedTask;
         }
